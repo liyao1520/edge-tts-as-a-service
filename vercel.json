@@ -6,6 +6,9 @@
       "use": "@vercel/python"
     }
   ],
+   "env": {
+    "PYTHONUNBUFFERED": "1"
+  },
   "routes": [
     {
       "src": "/(.*)",
