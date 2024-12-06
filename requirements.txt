@@ -1,6 +1,3 @@
-setuptools>=65.5.0
-wheel>=0.40.0
-Cython>=0.29.0
 aioflask==0.4.0
 aiohttp==3.8.4
 aiosignal==1.3.1
