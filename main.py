@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
 
-async def stream_audio(text, voice, rate="0%", pitch="0%") -> None:
+async def stream_audio(text, voice, rate="0%", pitch="0Hz") -> None:
     communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
     async for chunk in communicate.stream():
         if chunk["type"] == "audio":
@@ -43,7 +43,7 @@ def tts():
     voice = data.get('voice', 'zh-CN-YunxiNeural')
     file_name = data.get('file_name', OUTPUT_FILE)
     rate = data.get('rate', "0%")  # 默认语速
-    pitch = data.get('pitch', "0%")  # 默认音调
+    pitch = data.get('pitch', "0Hz")  # 默认音调
 
     communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
     communicate.save_sync(file_name)
@@ -56,7 +56,7 @@ async def stream_audio_route():
     text = data['text']
     voice = data.get('voice', 'zh-CN-YunxiNeural')
     rate = data.get('rate', "0%")  # 默认语速
-    pitch = data.get('pitch', "0%")  # 默认音调
+    pitch = data.get('pitch', "0Hz")  # 默认音调
 
     return Response((audio_generator(text, voice, rate, pitch)), content_type='application/octet-stream')
 
