@@ -8,16 +8,16 @@ app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
 
-async def stream_audio(text, voice) -> None:
-    communicate = edge_tts.Communicate(text, voice)
-    for chunk in communicate.stream_sync():
+async def stream_audio(text, voice, rate="0%", pitch="0%") -> None:
+    communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+    async for chunk in communicate.stream():
         if chunk["type"] == "audio":
             yield chunk["data"]
 
 
-def audio_generator(text, voice):
+def audio_generator(text, voice, rate, pitch):
     loop = asyncio.new_event_loop()
-    coroutine = stream_audio(text, voice)
+    coroutine = stream_audio(text, voice, rate, pitch)
     while True:
         try:
             chunk = loop.run_until_complete(coroutine.__anext__())
@@ -40,11 +40,12 @@ def make_response(code, message, data=None):
 def tts():
     data = request.get_json()
     text = data['text']
-    # voice not required
     voice = data.get('voice', 'zh-CN-YunxiNeural')
     file_name = data.get('file_name', OUTPUT_FILE)
+    rate = data.get('rate', "0%")  # 默认语速
+    pitch = data.get('pitch', "0%")  # 默认音调
 
-    communicate = edge_tts.Communicate(text, voice)
+    communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
     communicate.save_sync(file_name)
     return send_file(file_name, mimetype='audio/mpeg')
 
@@ -54,8 +55,10 @@ async def stream_audio_route():
     data = request.get_json()
     text = data['text']
     voice = data.get('voice', 'zh-CN-YunxiNeural')
+    rate = data.get('rate', "0%")  # 默认语速
+    pitch = data.get('pitch', "0%")  # 默认音调
 
-    return Response((audio_generator(text, voice)), content_type='application/octet-stream')
+    return Response((audio_generator(text, voice, rate, pitch)), content_type='application/octet-stream')
 
 
 @app.route('/voices', methods=['GET'])
