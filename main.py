@@ -39,14 +39,23 @@ def make_response(code, message, data=None):
         response['data'] = data
     return jsonify(response)
 
-@app.route('/tts', methods=['POST'])
+def get_request_data():
+    if request.method == 'POST':
+        return request.get_json()
+    else:
+        return request.args
+
+@app.route('/tts', methods=['GET', 'POST'])
 def tts():
-    data = request.get_json()
-    text = data['text']
+    data = get_request_data()
+    text = data.get('text')
+    if not text:
+        return make_response(400, 'Text parameter is required')
+    
     voice = data.get('voice', 'zh-CN-YunxiNeural')
     file_name = data.get('file_name', OUTPUT_FILE)
-    rate = data.get('rate', "+0%")  # 默认语速
-    pitch = data.get('pitch', "+0Hz")  # 默认音调
+    rate = data.get('rate', "+0%")
+    pitch = data.get('pitch', "+0Hz")
 
     try:
         communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
@@ -55,23 +64,26 @@ def tts():
     except Exception as e:
         return make_response(500, f"Error generating TTS: {str(e)}")
 
-@app.route('/tts/stream', methods=['POST'])
-async def stream_audio_route():
-    data = request.get_json()
-    text = data['text']
+@app.route('/tts/stream', methods=['GET', 'POST'])
+def stream_audio_route():
+    data = get_request_data()
+    text = data.get('text')
+    if not text:
+        return make_response(400, 'Text parameter is required')
+    
     voice = data.get('voice', 'zh-CN-YunxiNeural')
-    rate = data.get('rate', "+0%")  # 默认语速
-    pitch = data.get('pitch', "+0Hz")  # 默认音调
+    rate = data.get('rate', "+0%")
+    pitch = data.get('pitch', "+0Hz")
 
     try:
         return Response((audio_generator(text, voice, rate, pitch)), content_type='application/octet-stream')
     except Exception as e:
         return make_response(500, f"Error streaming TTS: {str(e)}")
 
-@app.route('/voices', methods=['GET'])
-async def voices():
+@app.route('/voices', methods=['GET', 'POST'])
+def voices():
     try:
-        voices = await edge_tts.list_voices()
+        voices = asyncio.run(edge_tts.list_voices())
         return make_response(200, 'OK', voices)
     except Exception as e:
         return make_response(500, f"Error fetching voices: {str(e)}")
