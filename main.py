@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
 # 初始化文本缓存，存储60秒自动过期，最大存储1000个条目
-text_cache = TTLCache(maxsize=1000, ttl=60)
+text_cache = TTLCache(maxsize=1000, ttl=600)
 
 async def stream_audio(text, voice, rate="+0%", pitch="+0Hz") -> None:
     try:
