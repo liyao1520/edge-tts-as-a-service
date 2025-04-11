@@ -1,191 +1,151 @@
-# Edge-TTS HTTP Service
+# Edge-TTS HTTP 服务
 
-A simple HTTP service that provides Text-to-Speech functionality using Microsoft Edge's TTS engine, supporting multiple languages and voices through RESTful APIs.
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+一个基于 Microsoft Edge TTS 引擎的 HTTP 服务，通过 RESTful API 提供文字转语音功能，支持多语言和多种声音。
 
 [English](README.md) | [中文](README_zh.md)
 
-## Features
+## 特性
 
-- 🌍 Multiple languages and voices support
-- 🚀 Both streaming and non-streaming audio output
-- 🔧 Simple REST API interface
-- 🐳 Docker support
-- ⚡ Low latency response
+- 🌍 支持多种语言和声音
+- 🚀 支持流式和非流式音频输出
+- 📦 长文本存储和 ID 调用（避免 URL 过长）
+- 🔧 简单的 REST API 接口
+- 🐳 支持 Docker 部署
+- ⚡ 低延迟响应
+- ⏳ 自动清理过期文本（1 分钟有效期）
 
-## Quick Start
+## 快速开始
 
-### Option 1: Run Directly
+### 方式一：直接运行
 
-1. Clone the repository:
+1. 克隆仓库：
+
 ```bash
 git clone https://github.com/doctoroyy/edge-tts-as-a-service
 cd edge-tts-as-a-service
 ```
 
-2. Install dependencies:
+2. 安装依赖：
+
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Start the service:
+3. 启动服务：
+
 ```bash
 python main.py
 ```
 
-The service will be available at `http://localhost:5000`
+服务将在 http://localhost:5000 启动
 
-### Option 2: Docker Deployment
+### 方式二：Docker 部署
 
-1. Build the image:
+1. 构建镜像：
+
 ```bash
 docker build -t edge-tts-as-a-service .
 ```
 
-2. Run the container:
+2. 运行容器：
+
 ```bash
 docker run -d -p 5000:5000 edge-tts-as-a-service
 ```
 
-## API Documentation
+API 文档
 
-### 1. List Available Voices
+1. 获取可用声音列表
+   获取所有支持的声音选项。
 
-Retrieve all supported voice options.
+`GET /voices`
 
-```
-GET /voices
-```
+响应示例：
 
-Response example:
 ```json
 {
-    "code": 200,
-    "message": "OK",
-    "data": [
-        {
-            "Name": "en-US-GuyNeural",
-            "ShortName": "en-US-GuyNeural",
-            "Gender": "Male",
-            "Locale": "en-US"
-        },
-        // ... more voices
-    ]
+  "code": 200,
+  "message": "OK",
+  "data": [
+    {
+      "Name": "zh-CN-YunxiNeural",
+      "ShortName": "zh-CN-YunxiNeural",
+      "Gender": "Male",
+      "Locale": "zh-CN"
+    }
+    // ... 更多声音选项
+  ]
 }
 ```
 
-### 2. Text-to-Speech (Download)
+2. 存储长文本（新增）
+   存储长文本并获取调用 ID，解决 URL 长度限制问题。
 
-Convert text to speech and download the audio file.
+`POST /tts/store`
 
-```
-POST /tts
-```
+请求体：
 
-Request body:
 ```json
 {
-    "text": "Hello, World!",
-    "voice": "en-US-GuyNeural",    // Optional, defaults to "zh-CN-YunxiNeural"
-    "file_name": "hello.mp3"       // Optional, defaults to "test.mp3"
+  "text": "这里是非常长的文本内容..."
 }
 ```
 
-Response:
-- Content-Type: audio/mpeg
-- Returns audio file stream
+响应示例：
 
-### 3. Text-to-Speech (Streaming)
-
-Convert text to speech with streaming output, suitable for real-time playback.
-
-```
-POST /tts/stream
-```
-
-Request body:
 ```json
 {
-    "text": "Hello, World!",
-    "voice": "en-US-GuyNeural"    // Optional, defaults to "zh-CN-YunxiNeural"
+  "code": 200,
+  "message": "OK",
+  "data": {
+    "text_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+  }
 }
 ```
 
-Response:
-- Content-Type: application/octet-stream
-- Returns audio stream
+3. 文本转语音（下载）
+   将文本转换为语音文件并下载，支持直接文本或存储 ID 调用。
 
-## Usage Examples
+`POST /tts`
 
-### Python Example
+请求体：
 
-```python
-import requests
-
-# Get available voices
-response = requests.get('http://localhost:5000/voices')
-voices = response.json()['data']
-
-# Text-to-Speech (Download)
-data = {
-    "text": "Hello, World!",
-    "voice": "en-US-GuyNeural",
-    "file_name": "output.mp3"
+```json
+{
+  "text": "你好，世界！", // 文本内容（与text_id二选一）
+  "text_id": "存储的文本ID", // 存储的文本ID（与text二选一）
+  "voice": "zh-CN-YunxiNeural", // 可选，默认为 "zh-CN-YunxiNeural"
+  "file_name": "hello.mp3" // 可选，默认为 "test.mp3"
 }
-response = requests.post('http://localhost:5000/tts', json=data)
-with open('output.mp3', 'wb') as f:
-    f.write(response.content)
-
-# Text-to-Speech (Streaming)
-response = requests.post('http://localhost:5000/tts/stream', json=data, stream=True)
-with open('stream_output.mp3', 'wb') as f:
-    for chunk in response.iter_content(chunk_size=8192):
-        f.write(chunk)
 ```
 
-### curl Example
+响应：
 
-```bash
-# Get available voices
-curl http://localhost:5000/voices
+Content-Type: audio/mpeg
 
-# Text-to-Speech (Download)
-curl -X POST http://localhost:5000/tts \
-    -H "Content-Type: application/json" \
-    -d '{"text":"Hello, World!", "voice":"en-US-GuyNeural"}' \
-    --output output.mp3
+返回音频文件流
 
-# Text-to-Speech (Streaming)
-curl -X POST http://localhost:5000/tts/stream \
-    -H "Content-Type: application/json" \
-    -d '{"text":"Hello, World!", "voice":"en-US-GuyNeural"}' \
-    --output stream_output.mp3
+4. 文本转语音（流式）
+
+`POST /tts/stream`
+
+请求体：
+
+```json
+{
+  "text": "你好，世界！", // 文本内容（与text_id二选一）
+  "text_id": "存储的文本ID", // 存储的文本ID（与text二选一）
+  "voice": "zh-CN-YunxiNeural", // 可选，默认为 "zh-CN-YunxiNeural"
+  "rate": "+0%", // 可选，默认为 "+0%"
+  "pitch": "+0Hz" // 可选，默认为 "+0Hz"
+}
 ```
 
-## FAQ
+响应：
 
-1. **Q: How do I choose the right voice?**  
-   A: Use the `/voices` endpoint to get a list of all available voices. Choose based on the Locale and Gender attributes.
+Content-Type: application/octet-stream
 
-2. **Q: What languages are supported?**  
-   A: Multiple languages including English, Chinese, Japanese, etc. Check the `/voices` endpoint for a complete list.
-
-3. **Q: What is the audio file format?**  
-   A: The service generates MP3 audio files.
-
-## Notes
-
-- Docker deployment is recommended for production environments
-- The service has a text length limit; consider splitting long texts
-- Default port is 5000, configurable through environment variables
-
-## Contributing
-
-Issues and Pull Requests are welcome. Before submitting a PR, please:
-
-1. Ensure your code follows the project style
-2. Add necessary tests
-3. Update relevant documentation
-
-## License
-
-[MIT License](LICENSE)
+返回音频数据流
