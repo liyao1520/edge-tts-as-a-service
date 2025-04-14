@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
 # 初始化文本缓存，存储60秒自动过期，最大存储1000个条目
-text_cache = TTLCache(maxsize=1000, ttl=60)
+text_cache = TTLCache(maxsize=1000, ttl=600)
 
 async def stream_audio(text, voice, rate="+0%", pitch="+0Hz") -> None:
     try:
@@ -42,8 +42,7 @@ def make_response(code, message, data=None):
     }
     if data is not None:
         response['data'] = data
-    return jsonify(response)
-
+    return jsonify(response), code, {'Content-Type': 'application/json'}
 def get_request_data():
     if request.method == 'POST':
         return request.get_json()
@@ -61,6 +60,15 @@ def store_text():
     text_id = str(uuid.uuid4())
     text_cache[text_id] = text
     return make_response(200, 'OK', {'text_id': text_id})
+
+@app.route('/tts/stored_ids', methods=['GET'])
+def get_stored_text_ids():
+    """获取所有存储的text_id"""
+    try:
+        text_ids = list(text_cache.keys())
+        return make_response(200, 'OK', {'text_ids': text_ids})
+    except Exception as e:
+        return make_response(500, f"Error fetching text IDs: {str(e)}")
 
 def get_text_from_request(data):
     """从请求数据中获取文本（支持直接text参数或text_id查询缓存）"""
