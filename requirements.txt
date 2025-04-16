@@ -6,7 +6,6 @@ asgiref==3.6.0
 async-timeout==4.0.2
 attrs==22.2.0
 binaryornot==0.4.4
-cachetools==5.3.1  # <--- 新增的依赖
 certifi==2023.11.17
 chardet==5.1.0
 charset-normalizer==3.1.0
@@ -36,3 +35,9 @@ uvicorn==0.21.1
 Werkzeug==2.2.3
 yarl==1.8.2
 gunicorn==20.1.0
+
+# ✅ 新增支持 Redis 和 dotenv
+redis==5.0.1
+python-dotenv==1.0.1
+
+pydub==0.25.1
