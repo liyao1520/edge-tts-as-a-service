@@ -6,7 +6,6 @@ from flask import Flask, Response, jsonify, request, send_file
 from flask_cors import CORS
 import redis
 from dotenv import load_dotenv
-import tempfile
 from pydub import AudioSegment
 from io import BytesIO
 
@@ -123,6 +122,7 @@ def stream_audio_route():
         async def async_gen():
             try:
                 for chunk_text in split_text(text):
+                    # 每个 chunk 的生成
                     communicate = edge_tts.Communicate(chunk_text, voice, rate=rate, pitch=pitch)
                     async for chunk in communicate.stream():
                         if chunk["type"] == "audio":
@@ -134,6 +134,7 @@ def stream_audio_route():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         agen = async_gen().__aiter__()
+
         try:
             while True:
                 chunk = loop.run_until_complete(agen.__anext__())
@@ -143,7 +144,10 @@ def stream_audio_route():
         except Exception as e:
             yield f"Error: {str(e)}".encode()
 
-    return Response(sync_stream_generator(), content_type='application/octet-stream')
+    # 创建流响应，并设置文件名
+    response = Response(sync_stream_generator(), content_type='application/octet-stream')
+    response.headers['Content-Disposition'] = 'attachment; filename="stream.mp3"'
+    return response
 
 
 @app.route('/voices', methods=['GET', 'POST'])
