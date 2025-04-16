@@ -22,7 +22,8 @@ CORS(app, supports_credentials=True, max_age=600, allow_headers="*")
 
 def split_text(text, max_length=300):
     import re
-    sentences = re.split(r'(?<=[。！？\.\?\!])', text)
+    sentence_endings = r'(?<=[。！？；：、.!?;:])'
+    sentences = re.split(sentence_endings, text)
     chunks, current = [], ''
     for sentence in sentences:
         if len(current) + len(sentence) <= max_length:
